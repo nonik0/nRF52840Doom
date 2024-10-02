@@ -362,6 +362,8 @@ void main(void)
     //
     uint8_t c = 0;
     getKeys(&c);
+    getKeys(&c);
+    getKeys(&c);
 
     displayPrintln(1, "Key Pressed: %x", c);
     if ((c & (KEY_ALT | KEY_CHGW | KEY_USE)) == (KEY_ALT | KEY_CHGW | KEY_USE))

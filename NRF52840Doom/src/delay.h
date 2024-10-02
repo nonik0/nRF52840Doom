@@ -44,4 +44,11 @@ static inline void delay(uint32_t milliseconds)
     while ((uint32_t)NRF_TIMER3->CC[0] - timeNow < milliseconds)
         ;
 }
+
+static inline void delayUs(uint32_t microseconds)
+{
+    uint32_t timeNow = NRF_TIMER3->CC[0];
+    while ((uint32_t)NRF_TIMER3->CC[0] - timeNow < microseconds)
+        ;
+}
 #endif /* SRC_DELAY_H_ */
