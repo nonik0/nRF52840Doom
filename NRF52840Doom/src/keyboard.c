@@ -147,10 +147,11 @@ void initI2cKeyboard()
 #if KEYBOARD == I2C_GAMEPAD
 const uint8_t GamepadQTButtonMask = (1 << GAMEPADQT_BUTTON_A) | (1 << GAMEPADQT_BUTTON_B) | (1 << GAMEPADQT_BUTTON_X) | (1 << GAMEPADQT_BUTTON_Y);
 const uint8_t GamepadQTButtonMaskFull[4] = {0, 0, 0, GamepadQTButtonMask};
-// TWIM will read data async into these arrays
-volatile uint8_t i2cReadDataX[2];
-volatile uint8_t i2cReadDataY[2];
-volatile uint8_t i2cReadDataB[4];
+volatile uint8_t xReading[2];
+volatile uint8_t yReading[2];
+volatile uint8_t buttons[4];
+uint8_t lastReadType;
+uint32_t lastReadTime;
 uint8_t i2cWriteData[6]; // max msg size is 2+4
 void i2cSendAndWait(uint8_t regHigh, uint8_t regLow, uint8_t *buf, uint8_t num)
 {
@@ -170,18 +171,14 @@ void i2cSendAndWait(uint8_t regHigh, uint8_t regLow, uint8_t *buf, uint8_t num)
     while(!NRF_TWIM1->EVENTS_STOPPED);
     NRF_TWIM1->EVENTS_STOPPED = 0;
 }
-void i2cRead(uint8_t regHigh, uint8_t regLow, volatile uint8_t *inBuf, uint8_t *outBuf, uint8_t num)
+void i2cRead(uint8_t regHigh, uint8_t regLow, volatile uint8_t *buf, uint8_t num)
 {
-    // copy inBuf from last read into outBuf
-    for (uint8_t i = 0; i < num; i++) {
-      outBuf[i] = inBuf[i];
-    }
     i2cWriteData[0] = regHigh;
     i2cWriteData[1] = regLow;
     NRF_TWIM1->TXD.MAXCNT = 2;
     NRF_TWIM1->RXD.MAXCNT = num;
     NRF_TWIM1->TXD.PTR = (uint32_t) i2cWriteData;
-    NRF_TWIM1->RXD.PTR = (uint32_t) inBuf;
+    NRF_TWIM1->RXD.PTR = (uint32_t) buf;
 
     NRF_TWIM1->SHORTS = (TWIM_SHORTS_LASTTX_STARTRX_Enabled << TWIM_SHORTS_LASTTX_STARTRX_Pos)  
                       | (TWIM_SHORTS_LASTRX_STOP_Enabled << TWIM_SHORTS_LASTRX_STOP_Pos);
@@ -192,28 +189,34 @@ uint8_t updateI2cGamepad(uint8_t *keys)
     const uint16_t sensitivity = 50;
     bool up = false, down = false, left = false, right = false;
 
-    uint8_t xReading[2], yReading[2];
-    i2cRead(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_X, i2cReadDataX, xReading, 2);
-    delayUs(500);
-    i2cRead(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_Y, i2cReadDataY, yReading, 2);
-    delayUs(500);
+    // rate limit I2C reads, then continually just read from the buffers that will be updated async by TWIM
+    if (NRF_TIMER3->CC[0] - lastReadTime > 250) { // us delay
+      switch (lastReadType) {
+        case 0: i2cRead(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_X, xReading, 2); break;
+        case 1: i2cRead(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_Y, yReading, 2); break;
+        case 2: i2cRead(SEESAW_GPIO_BASE, SEESAW_GPIO_BULK, buttons, 4); break;
+      }
+
+      lastReadTime = NRF_TIMER3->CC[0];
+      lastReadType = (lastReadTime + 1) % 3;
+    }
 
     // convert analog readings to digital input
     uint16_t x = (xReading[0] << 8) | xReading[1];
-    uint16_t y = (yReading[0] << 8) | yReading[1];
-    if (x > 0 || y > 0) {
-      up = y < (512 - sensitivity);
-      down = y > (512 + sensitivity);
+    if (x >= 0 && x <= 1024) {
       left = x > (512 + sensitivity);
       right = x < (512 - sensitivity);
     }
 
-    // read digital buttons
-    uint8_t buttons[4];
-    i2cRead(SEESAW_GPIO_BASE, SEESAW_GPIO_BULK, i2cReadDataB, buttons, 4);
+    uint16_t y = (yReading[0] << 8) | yReading[1];
+    if (y >= 0 && y <= 1024) {
+      up = y < (512 - sensitivity);
+      down = y > (512 + sensitivity);
+    }
 
     // update keys pressed
     *keys = ~buttons[3] & GamepadQTButtonMask;
+
     *keys |= up ? KEY_UP : 0;
     *keys |= down ? KEY_DOWN : 0;
     *keys |= left ? KEY_LEFT : 0;
@@ -252,8 +255,19 @@ void initI2cGamepad()
     i2cSendAndWait(SEESAW_GPIO_BASE, SEESAW_GPIO_BULK_SET, GamepadQTButtonMaskFull, 4);
     i2cSendAndWait(SEESAW_GPIO_BASE, SEESAW_GPIO_INTENSET, GamepadQTButtonMaskFull, 4);
 
+
+    lastReadTime = NRF_TIMER3->CC[0];
+    lastReadType = (lastReadTime + 1) % 3;
+
     uint8_t _;
+
+    // initiate readings for all input
     updateI2cGamepad(&_);
+    delay(1);
+    updateI2cGamepad(&_);
+    delay(1);
+    updateI2cGamepad(&_);
+    delay(1);
 }
 #endif
 #if KEYBOARD == PARALLEL_KEYBOARD

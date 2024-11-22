@@ -49,7 +49,7 @@
 #define RF_ADDRESS {'D', 'O', 'O', 'M'};
 #define RF_ADDRESS_PREFIX 0xAA
 
-#define DEBUG_SETUP 1
+#define DEBUG_SETUP 0
 #if DEBUG_SETUP
 #define AUTOSTART_GAME 0
     #define START_MAP 7
@@ -66,7 +66,7 @@
 //
 #define DISPLAY_USES_RESET_INSTEAD_OF_NCS 1 // for displays without CS...
 // note: for debug, do not use shorts, otherwise the display data is likely to be trashed. However the frame rate will be slower.
-#define DISPLAY_SPIM_USES_SHORTS 0
+#define DISPLAY_SPIM_USES_SHORTS 1
 //
 //
 #define I2C_KEYBOARD 1
@@ -85,7 +85,7 @@
 
 #else
     #define ADAFRUIT_CLUE_DISPLAY 1
-    #define EXTERNAL_CLUE_FLASH 1
+    #define EXTERNAL_CLUE_FLASH 0
     #define INTERNAL_CLUE_FLASH (1 - EXTERNAL_CLUE_FLASH)
     #define KEYBOARD I2C_GAMEPAD 
 #endif
