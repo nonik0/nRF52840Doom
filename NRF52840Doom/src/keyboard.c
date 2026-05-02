@@ -145,15 +145,17 @@ void initI2cKeyboard()
 }
 #endif
 #if KEYBOARD == I2C_GAMEPAD
-const uint8_t GamepadQTButtonMask = (1 << GAMEPADQT_BUTTON_A) | (1 << GAMEPADQT_BUTTON_B) | (1 << GAMEPADQT_BUTTON_X) | (1 << GAMEPADQT_BUTTON_Y);
-const uint8_t GamepadQTButtonMaskFull[4] = {0, 0, 0, GamepadQTButtonMask};
+const uint8_t GamepadQTButtonMaskByte1 = (1 << GAMEPADQT_BUTTON_START);
+const uint8_t GamepadQTButtonMaskByte3 = 
+  (1 << GAMEPADQT_BUTTON_A) | (1 << GAMEPADQT_BUTTON_B) | (1 << GAMEPADQT_BUTTON_X) | (1 << GAMEPADQT_BUTTON_Y) | (1 << GAMEPADQT_BUTTON_SELECT);
+const uint8_t GamepadQTButtonMaskFull[4] = {0, GamepadQTButtonMaskByte1, 0, GamepadQTButtonMaskByte3};
 volatile uint8_t xReading[2];
 volatile uint8_t yReading[2];
 volatile uint8_t buttons[4];
 uint8_t lastReadType;
 uint32_t lastReadTime;
 uint8_t i2cWriteData[6]; // max msg size is 2+4
-void i2cSendAndWait(uint8_t regHigh, uint8_t regLow, uint8_t *buf, uint8_t num)
+void i2cSendAndWait(uint8_t regHigh, uint8_t regLow, const uint8_t *buf, uint8_t num)
 {
     NRF_TWIM1->EVENTS_STOPPED = 0;
     NRF_TWIM1->SHORTS = TWIM_SHORTS_LASTTX_STOP_Msk;
@@ -187,7 +189,6 @@ void i2cRead(uint8_t regHigh, uint8_t regLow, volatile uint8_t *buf, uint8_t num
 uint8_t updateI2cGamepad(uint8_t *keys)
 {
     const uint16_t sensitivity = 50;
-    bool up = false, down = false, left = false, right = false;
 
     // rate limit I2C reads, then continually just read from the buffers that will be updated async by TWIM
     if (NRF_TIMER3->CC[0] - lastReadTime > 250) { // us delay
@@ -198,29 +199,38 @@ uint8_t updateI2cGamepad(uint8_t *keys)
       }
 
       lastReadTime = NRF_TIMER3->CC[0];
-      lastReadType = (lastReadTime + 1) % 3;
+      lastReadType = (lastReadType + 1) % 3;
+    }
+
+    // read majority of buttons from byte 3
+    *keys = ~buttons[3] & GamepadQTButtonMaskByte3;
+
+    // read start from byte 1, map to menu key combo
+    if (~buttons[1] & (1 << GAMEPADQT_BUTTON_START)) {
+      *keys |= KEY_ALT | KEY_USE;
+    }
+
+     // read select from byte 3, map to menu key combo
+    if (~buttons[3] & (1 << GAMEPADQT_BUTTON_SELECT)) {
+      *keys |= KEY_USE | KEY_CHGW;
+    }
+    // need to clear select bit as it collides with KEY_RIGHT (bit 0)
+    else {
+      *keys &= ~(1 << GAMEPADQT_BUTTON_SELECT);
     }
 
     // convert analog readings to digital input
     uint16_t x = (xReading[0] << 8) | xReading[1];
-    if (x >= 0 && x <= 1024) {
-      left = x > (512 + sensitivity);
-      right = x < (512 - sensitivity);
+    if (x <= 1024) {
+      *keys |= (x > (512 + sensitivity)) ? KEY_LEFT : 0;
+      *keys |= (x < (512 - sensitivity)) ? KEY_RIGHT : 0;
     }
 
     uint16_t y = (yReading[0] << 8) | yReading[1];
-    if (y >= 0 && y <= 1024) {
-      up = y < (512 - sensitivity);
-      down = y > (512 + sensitivity);
+    if (y <= 1024) {
+      *keys |= (y < (512 - sensitivity)) ? KEY_UP : 0;
+      *keys |= ( y > (512 + sensitivity)) ? KEY_DOWN : 0;
     }
-
-    // update keys pressed
-    *keys = ~buttons[3] & GamepadQTButtonMask;
-
-    *keys |= up ? KEY_UP : 0;
-    *keys |= down ? KEY_DOWN : 0;
-    *keys |= left ? KEY_LEFT : 0;
-    *keys |= right ? KEY_RIGHT : 0;
 }
 void initI2cGamepad()
 {
@@ -259,9 +269,8 @@ void initI2cGamepad()
     lastReadTime = NRF_TIMER3->CC[0];
     lastReadType = (lastReadTime + 1) % 3;
 
-    uint8_t _;
-
     // initiate readings for all input
+    uint8_t _;
     updateI2cGamepad(&_);
     delay(1);
     updateI2cGamepad(&_);

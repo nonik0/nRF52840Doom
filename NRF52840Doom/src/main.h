@@ -141,15 +141,16 @@
     #define SEESAW_STATUS_VERSION 0x02
     // ADC module function address registers
     #define SEESAW_ADC_CHANNEL_OFFSET 0x07
-    // Gamepad QT seesaw button pins (and bitmask offsets)
+    // Gamepad QT seesaw joystick pins
     #define GAMEPADQT_JOYSTICK_X      14
     #define GAMEPADQT_JOYSTICK_Y      15
+    // Gamepad WT seesaw button bitmask offsets
     #define GAMEPADQT_BUTTON_X         6
     #define GAMEPADQT_BUTTON_Y         2
     #define GAMEPADQT_BUTTON_A         5
     #define GAMEPADQT_BUTTON_B         1
     #define GAMEPADQT_BUTTON_SELECT    0
-    #define GAMEPADQT_BUTTON_START    16
+    #define GAMEPADQT_BUTTON_START     0 // actually bit 16 but using uint8t[] over uint32_t, so is bit 0 of byte 1 while rest of buttons are in byte 3
 
 #endif
 #if INTERNAL_CLUE_FLASH 
