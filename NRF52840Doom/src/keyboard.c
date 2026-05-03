@@ -68,7 +68,7 @@
         GPIO_PORT(PORT_NUM_KEY_ALT),
         GPIO_PORT(PORT_NUM_KEY_FIRE)
     };
-    const uint8_t keys[] = 
+    const key_t keys[] = 
     {
         KEY_UP,
         KEY_DOWN,
@@ -98,10 +98,10 @@ void i2cSendAndWait(uint8_t addr, uint8_t value)
     while(!NRF_TWIM1->EVENTS_STOPPED);
     NRF_TWIM1->EVENTS_STOPPED = 0;
 }
-uint8_t updateI2cKeyboard(uint8_t *keys)
+key_t updateI2cKeyboard(key_t *keys)
 {
   // read old value and start a new read
-    uint8_t k = i2cReadData;
+    key_t k = i2cReadData;
     i2cWriteData[0] = MCP23008_GPIO;
     NRF_TWIM1->TXD.MAXCNT = 1;
     NRF_TWIM1->RXD.MAXCNT = 1;
@@ -186,7 +186,7 @@ void i2cRead(uint8_t regHigh, uint8_t regLow, volatile uint8_t *buf, uint8_t num
                       | (TWIM_SHORTS_LASTRX_STOP_Enabled << TWIM_SHORTS_LASTRX_STOP_Pos);
     NRF_TWIM1->TASKS_STARTTX = 1;
 }
-uint8_t updateI2cGamepad(uint8_t *keys)
+key_t updateI2cGamepad(key_t *keys)
 {
     const uint16_t sensitivity = 50;
 
@@ -202,22 +202,11 @@ uint8_t updateI2cGamepad(uint8_t *keys)
       lastReadType = (lastReadType + 1) % 3;
     }
 
-    // read majority of buttons from byte 3
-    *keys = ~buttons[3] & GamepadQTButtonMaskByte3;
+    // read start button from byte 1 into upper byte of keys
+    *keys = ((key_t)(~buttons[1] & GamepadQTButtonMaskByte1)) << 8;
 
-    // read start from byte 1, map to menu key combo
-    if (~buttons[1] & (1 << GAMEPADQT_BUTTON_START)) {
-      *keys |= KEY_ALT | KEY_USE;
-    }
-
-     // read select from byte 3, map to menu key combo
-    if (~buttons[3] & (1 << GAMEPADQT_BUTTON_SELECT)) {
-      *keys |= KEY_USE | KEY_CHGW;
-    }
-    // need to clear select bit as it collides with KEY_RIGHT (bit 0)
-    else {
-      *keys &= ~(1 << GAMEPADQT_BUTTON_SELECT);
-    }
+    // read rest of buttons from byte 3 into lower byte of keys
+    *keys |= (key_t)(~buttons[3] & GamepadQTButtonMaskByte3);
 
     // convert analog readings to digital input
     uint16_t x = (xReading[0] << 8) | xReading[1];
@@ -270,7 +259,7 @@ void initI2cGamepad()
     lastReadType = (lastReadTime + 1) % 3;
 
     // initiate readings for all input
-    uint8_t _;
+    key_t _;
     updateI2cGamepad(&_);
     delay(1);
     updateI2cGamepad(&_);
@@ -334,14 +323,14 @@ void initRadioKeyboard()
     // the keyboard must receive also audio packet. Let's set.
     initWirelessAudio();
 }
-void updateRadioKeyboard(uint8_t * keys)
+void updateRadioKeyboard(key_t * keys)
 {
     // ok guys, the CRC is completely broken in NRF52xxx devices.
     //  I am not checking it, and I rely only on the address matching
     // if (NRF_RADIO->EVENTS_CRCOK)     // update only if CRC was ok.
     {
         // crc does not work properly so let's add a simple integrity check
-        if ((uint8_t)radioKeys[0] == (uint8_t)(~radioKeys[1]))
+        if ((key_t)radioKeys[0] == (key_t)(~radioKeys[1]))
         {
             *keys = radioKeys[0];
         }
@@ -426,10 +415,10 @@ void initKeyboard()
 #endif
 }
 
-void getKeys(uint8_t * keys)
+void getKeys(key_t * keys)
 {
 #if KEYBOARD == PARALLEL_KEYBOARD
-    uint8_t buttons = 0;
+    key_t buttons = 0;
     for (int i = 0; i < 8; i++)
     {
         uint32_t pressed = !(ports[i]->IN & (1 << pins[i]));

@@ -57,14 +57,18 @@
     #define KEY_LEFT 0x08 
     #define KEY_RIGHT 0x01 
 #elif KEYBOARD == I2C_GAMEPAD
-    #define KEY_RIGHT 0x01 // 0
-    #define KEY_ALT (1 << GAMEPADQT_BUTTON_B) // 1
-    #define KEY_USE (1 << GAMEPADQT_BUTTON_Y) // 2
-    #define KEY_LEFT 0x08 // 3
-    #define KEY_DOWN 0x10 // 4
-    #define KEY_FIRE (1 << GAMEPADQT_BUTTON_A) // 5
-    #define KEY_CHGW (1 << GAMEPADQT_BUTTON_X) // 6
-    #define KEY_UP 0x80 // 7
+    // lower key_t byte
+    #define KEY_MAP (1 << GAMEPADQT_BUTTON_SELECT) // 0x0001
+    #define KEY_ALT (1 << GAMEPADQT_BUTTON_B) // 0x0002
+    #define KEY_USE (1 << GAMEPADQT_BUTTON_Y) // 0x0004
+    #define KEY_LEFT 0x0008
+    #define KEY_DOWN 0x0010
+    #define KEY_FIRE (1 << GAMEPADQT_BUTTON_A) // 0x0020
+    #define KEY_CHGW (1 << GAMEPADQT_BUTTON_X) // 0x0040
+    #define KEY_UP 0x0080
+    // upper key_t byte
+    #define KEY_MENU (1 << (GAMEPADQT_BUTTON_START+8)) // 0x0100
+    #define KEY_RIGHT 0x0200
 #elif KEYBOARD == RADIO_KEYBOARD
     #define KEY_ALT  (1 << 1)    
     #define KEY_FIRE (1 << 2) 
@@ -77,7 +81,7 @@
 #endif
 
 void initKeyboard();
-void getKeys(uint8_t *keys);
+void getKeys(key_t *keys);
 #if KEYBOARD == RADIO_KEYBOARD 
     void disableWirelessAudio();
     void restoreWirelessAudio();

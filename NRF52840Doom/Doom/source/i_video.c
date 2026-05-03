@@ -85,9 +85,9 @@
 
 uint16_t palette[256];
 
-uint8_t keysDown()
+key_t keysDown()
 {
-  uint8_t buttons = 0;
+  key_t buttons = 0;
   getKeys(&buttons);
   return buttons;
 }
@@ -98,7 +98,7 @@ void I_StartTic(void)
 {
     static uint16_t oldGameKeyState = 0;
     // get which keys are currently pressed
-    uint8_t hwKeyState = keysDown();
+    key_t hwKeyState = keysDown();
     // translate between the hardware key state and the game key state
     uint16_t gameKeyState = 0;
 
@@ -109,7 +109,11 @@ void I_StartTic(void)
         if (hwKeyState & KEY_LEFT)
             gameKeyState |= 1 << KEYD_SL;
         if (hwKeyState & KEY_USE)
+#if KEYBOARD == I2C_GAMEPAD
+            gameKeyState |= 1 << KEYD_SPEED;
+#else
             gameKeyState |= 1 << KEYD_MENU;
+#endif
         if (hwKeyState & KEY_CHGW)
             gameKeyState |= 1 << KEYD_CHGWDOWN;
 #if OLD_KEYMAP // it was not wise setting ALT with fire to trigger automap...
@@ -140,10 +144,18 @@ void I_StartTic(void)
         gameKeyState |= 1 << KEYD_UP;
     if (hwKeyState & KEY_DOWN)
         gameKeyState |= 1 << KEYD_DOWN;
- #if !OLD_KEYMAP
-    // automap is now enabled when use and change weapon are pressed at the same time. 
-    if ((hwKeyState & (KEY_USE | KEY_CHGW)) == (KEY_USE | KEY_CHGW))
+    if (hwKeyState & KEY_MAP)
         gameKeyState |= 1 << KEYD_MAP1;
+    if (hwKeyState & KEY_MENU)
+        gameKeyState |= 1 << KEYD_MENU;
+#if !OLD_KEYMAP
+    // automap is now enabled when use and change weapon are pressed at the same time (or chgwdown for i2c gamepad)
+    if ((hwKeyState & (KEY_USE | KEY_CHGW)) == (KEY_USE | KEY_CHGW))
+#if KEYBOARD == I2C_GAMEPAD
+        gameKeyState |= 1 << KEYD_CHGWDOWN;
+#else
+        gameKeyState |= 1 << KEYD_MAP1;
+#endif
 #endif
     // Get which keys have changed since last time
     uint16_t keys_changed = oldGameKeyState ^ gameKeyState;

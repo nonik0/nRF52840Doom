@@ -89,6 +89,13 @@
     #define INTERNAL_CLUE_FLASH (1 - EXTERNAL_CLUE_FLASH)
     #define KEYBOARD I2C_GAMEPAD 
 #endif
+
+#if KEYBOARD == I2C_KEYBOARD
+    typedef uint16_t key_t;
+#else
+    typedef uint8_t key_t;
+#endif
+
 #if KEYBOARD == I2C_KEYBOARD
     #if MINEWDONGLE
         #error Only radio keyboard can be used with the dongle!

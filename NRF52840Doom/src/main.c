@@ -360,7 +360,7 @@ void main(void)
     printf("Device ID: %x%x\r\n", NRF_FICR->DEVICEID[0], NRF_FICR->DEVICEID[1]);
     //
     //
-    uint8_t c = 0;
+    key_t c = 0;
     getKeys(&c);
 
     displayPrintln(1, "Key Pressed: %x", c);
