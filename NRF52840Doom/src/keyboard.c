@@ -259,13 +259,9 @@ void initI2cGamepad()
     lastReadType = (lastReadTime + 1) % 3;
 
     // initiate readings for all input
-    key_t _;
-    updateI2cGamepad(&_);
-    delay(1);
-    updateI2cGamepad(&_);
-    delay(1);
-    updateI2cGamepad(&_);
-    delay(1);
+    i2cSendAndWait(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_X, xReading, 2);
+    i2cSendAndWait(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_Y, yReading, 2);
+    i2cSendAndWait(SEESAW_GPIO_BASE, SEESAW_GPIO_BULK, buttons, 4);
 }
 #endif
 #if KEYBOARD == PARALLEL_KEYBOARD

@@ -90,7 +90,7 @@
     #define KEYBOARD I2C_GAMEPAD 
 #endif
 
-#if KEYBOARD == I2C_KEYBOARD
+#if KEYBOARD == I2C_GAMEPAD
     typedef uint16_t key_t;
 #else
     typedef uint8_t key_t;
