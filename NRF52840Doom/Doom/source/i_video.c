@@ -110,7 +110,9 @@ void I_StartTic(void)
             gameKeyState |= 1 << KEYD_SL;
         if (hwKeyState & KEY_USE)
 #if KEYBOARD == I2C_GAMEPAD
-            gameKeyState |= 1 << KEYD_SPEED;
+            // KEYD_USE negates always run setting, so with a dedicated menu key the use button
+            // can be freed from the alt combo allowing it to be dual-purpose use and run button
+            gameKeyState |= 1 << KEYD_USE;
 #else
             gameKeyState |= 1 << KEYD_MENU;
 #endif
@@ -144,14 +146,18 @@ void I_StartTic(void)
         gameKeyState |= 1 << KEYD_UP;
     if (hwKeyState & KEY_DOWN)
         gameKeyState |= 1 << KEYD_DOWN;
+#if KEYBOARD == I2C_GAMEPAD
+    // Gamepad has 10 total buttons, with extra byte for key data can have map and menu as dedicated buttons
     if (hwKeyState & KEY_MAP)
         gameKeyState |= 1 << KEYD_MAP1;
     if (hwKeyState & KEY_MENU)
         gameKeyState |= 1 << KEYD_MENU;
+#endif
 #if !OLD_KEYMAP
     // automap is now enabled when use and change weapon are pressed at the same time (or chgwdown for i2c gamepad)
     if ((hwKeyState & (KEY_USE | KEY_CHGW)) == (KEY_USE | KEY_CHGW))
 #if KEYBOARD == I2C_GAMEPAD
+        // with dedicated map key, adding additional use+chgw=>chwdown combo since alt+chw=>chwdown are opposite buttons
         gameKeyState |= 1 << KEYD_CHGWDOWN;
 #else
         gameKeyState |= 1 << KEYD_MAP1;

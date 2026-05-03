@@ -193,9 +193,9 @@ key_t updateI2cGamepad(key_t *keys)
     // rate limit I2C reads, then continually just read from the buffers that will be updated async by TWIM
     if (NRF_TIMER3->CC[0] - lastReadTime > 250) { // us delay
       switch (lastReadType) {
-        case 0: i2cRead(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_X, xReading, 2); break;
-        case 1: i2cRead(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_Y, yReading, 2); break;
-        case 2: i2cRead(SEESAW_GPIO_BASE, SEESAW_GPIO_BULK, buttons, 4); break;
+        case 0: i2cRead(SEESAW_GPIO_BASE, SEESAW_GPIO_BULK, buttons, 4); break;
+        case 1: i2cRead(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_X, xReading, 2); break;
+        case 2: i2cRead(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_Y, yReading, 2); break;
       }
 
       lastReadTime = NRF_TIMER3->CC[0];
@@ -259,9 +259,12 @@ void initI2cGamepad()
     lastReadType = (lastReadTime + 1) % 3;
 
     // initiate readings for all input
-    i2cSendAndWait(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_X, xReading, 2);
-    i2cSendAndWait(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_Y, yReading, 2);
-    i2cSendAndWait(SEESAW_GPIO_BASE, SEESAW_GPIO_BULK, buttons, 4);
+    i2cRead(SEESAW_GPIO_BASE, SEESAW_GPIO_BULK, buttons, 4);
+    delay(5);
+    i2cRead(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_X, xReading, 2);
+    delay(5);
+    i2cRead(SEESAW_ADC_BASE, SEESAW_ADC_CHANNEL_OFFSET + GAMEPADQT_JOYSTICK_Y, yReading, 2);
+    delay(500);
 }
 #endif
 #if KEYBOARD == PARALLEL_KEYBOARD
