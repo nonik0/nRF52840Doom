@@ -85,6 +85,7 @@
 #define NO_PALETTE_CHANGE 255
 
 uint16_t palette[256];
+bool toggleBacklight = false;
 
 key_t keysDown()
 {
@@ -194,15 +195,17 @@ void I_StartTic(void)
     oldGameKeyState = gameKeyState;
 
 #if !MINEWDONGLE
-    // handle onboard clue buttons for gamma adjust
+    // handle onboard clue buttons for gamma adjust and toggling backlight
     static bool aBtnWasDown = false;
     static bool bBtnWasDown = false;
     bool aDown = !(GPIO_PORT(PORT_NUM_BTN_A)->IN & (1 << PIN_NUM_BTN_A));
     bool bDown = !(GPIO_PORT(PORT_NUM_BTN_B)->IN & (1 << PIN_NUM_BTN_B));
 
-    if (aDown && !aBtnWasDown)
+    if (aDown && bDown && (!aBtnWasDown || !bBtnWasDown))
+      toggleBacklight = true;
+    else if (aDown && !aBtnWasDown)
         M_ChangeGamma(0);
-    if (bDown && !bBtnWasDown)
+    else if (bDown && !bBtnWasDown)
         M_ChangeGamma(1);
 
     aBtnWasDown = aDown;
@@ -276,3 +279,13 @@ void I_SetPalette(int pal)
     _g->newpal = pal;
 }
 
+void handleDisplayBacklightToggle() {
+    static bool backlightOn = true;
+
+    if (toggleBacklight)
+    {
+        toggleBacklight = false;
+        backlightOn = !backlightOn;
+        SetBacklight(backlightOn);
+    }
+}

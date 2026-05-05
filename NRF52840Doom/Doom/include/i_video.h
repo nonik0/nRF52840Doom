@@ -78,6 +78,7 @@ key_t keysDown();
  * are performed here (joystick reading).
  * Can call D_PostEvent.
  */
+void handleDisplayBacklightToggle();
 
 void I_StartFrame(void);
 extern uint8_t displayBuffer[96 * SCREENWIDTH_PHYSICAL];
