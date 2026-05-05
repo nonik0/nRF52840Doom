@@ -88,6 +88,13 @@
     #define EXTERNAL_CLUE_FLASH 0
     #define INTERNAL_CLUE_FLASH (1 - EXTERNAL_CLUE_FLASH)
     #define KEYBOARD I2C_GAMEPAD 
+
+    // onboard clue buttons
+    #define PORT_NUM_BTN_A P1
+    #define PORT_NUM_BTN_B P1
+
+    #define PIN_NUM_BTN_A 2
+    #define PIN_NUM_BTN_B 10
 #endif
 
 #if KEYBOARD == I2C_GAMEPAD

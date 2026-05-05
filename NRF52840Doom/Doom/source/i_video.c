@@ -68,6 +68,7 @@
 #include "d_event.h"
 #include "i_video.h"
 #include "i_sound.h"
+#include "m_menu.h"
 #include "z_zone.h"
 #include "s_sound.h"
 #include "sounds.h"
@@ -191,6 +192,22 @@ void I_StartTic(void)
         }
     }
     oldGameKeyState = gameKeyState;
+
+#if !MINEWDONGLE
+    // handle onboard clue buttons for gamma adjust
+    static bool aBtnWasDown = false;
+    static bool bBtnWasDown = false;
+    bool aDown = !(GPIO_PORT(PORT_NUM_BTN_A)->IN & (1 << PIN_NUM_BTN_A));
+    bool bDown = !(GPIO_PORT(PORT_NUM_BTN_B)->IN & (1 << PIN_NUM_BTN_B));
+
+    if (aDown && !aBtnWasDown)
+        M_ChangeGamma(0);
+    if (bDown && !bBtnWasDown)
+        M_ChangeGamma(1);
+
+    aBtnWasDown = aDown;
+    bBtnWasDown = bDown;
+#endif
 }
 
 boolean I_StartDisplay(void)
